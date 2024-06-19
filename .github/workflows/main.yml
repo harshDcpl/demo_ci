@@ -1,0 +1,108 @@
+name: Flutter Build and Release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        flutter-version: [3.3.0]  # Specify the Flutter version you want to use
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ matrix.flutter-version }}
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Run Tests
+        run: flutter test
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v2
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        flutter-version: [3.3.0]  # Specify the Flutter version you want to use
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ matrix.flutter-version }}
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Run Tests
+        run: flutter test
+
+      - name: Build IPA
+        run: |
+          flutter build ios --release --no-codesign
+
+      - name: Upload Release IPA
+        uses: actions/upload-artifact@v2
+        with:
+          name: release-ipa
+          path: build/ios/ipa/*.ipa
+
+  release:
+    name: Create Release
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Download Release APK
+        uses: actions/download-artifact@v2
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/
+
+      - name: Download Release IPA
+        uses: actions/download-artifact@v2
+        with:
+          name: release-ipa
+          path: build/ios/ipa/
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v1.0.0  # Adjust the version tag as needed
+          name: Release v1.0.0
+          body: |
+            ## Changes
+            - Describe your changes here
+          files: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/ios/ipa/*.ipa
+          token: ${{ secrets.TOKEN }}
