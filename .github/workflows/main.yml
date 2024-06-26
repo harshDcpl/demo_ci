@@ -30,7 +30,7 @@ jobs:
           flutter build ios --no-codesign
           cd build/ios/iphoneos
           mkdir Payload
-          cd Payload
+          cd Payloadz 
           ln -s ../Runner.app
           cd ..
           zip -r app.ipa Payload
